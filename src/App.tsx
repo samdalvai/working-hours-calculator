@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "./App.css";
 
+type TimeField = "enterAM" | "exitAM" | "enterPM" | "exitPM";
+
 interface WorkingHourDay {
   enterAM: number | null;
   exitAM: number | null;
@@ -11,132 +13,234 @@ interface WorkingHourDay {
 interface WorkingHourWeek {
   monday: WorkingHourDay;
   tuesday: WorkingHourDay;
+  wednesday: WorkingHourDay;
+  thursday: WorkingHourDay;
+  friday: WorkingHourDay;
+}
+
+type WorkingDay = keyof WorkingHourWeek;
+
+const WORKING_MINUTES_PER_DAY = 8 * 60;
+
+const dayLabels: Record<WorkingDay, string> = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+};
+
+function defaultWorkingDay(): WorkingHourDay {
+  return {
+    enterAM: null,
+    exitAM: null,
+    enterPM: null,
+    exitPM: null,
+  };
 }
 
 function defaultWorkingHours(): WorkingHourWeek {
   return {
-    monday: {
-      enterAM: null,
-      exitAM: null,
-      enterPM: null,
-      exitPM: null,
-    },
-    tuesday: {
-      enterAM: null,
-      exitAM: null,
-      enterPM: null,
-      exitPM: null,
-    },
+    monday: defaultWorkingDay(),
+    tuesday: defaultWorkingDay(),
+    wednesday: defaultWorkingDay(),
+    thursday: defaultWorkingDay(),
+    friday: defaultWorkingDay(),
   };
+}
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(minutes: number | null): string {
+  if (minutes === null) {
+    return "";
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  return `${hours.toString().padStart(2, "0")}:${mins
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+function formatDuration(totalMinutes: number): string {
+  const hours = Math.floor(Math.abs(totalMinutes) / 60);
+  const minutes = Math.abs(totalMinutes) % 60;
+
+  return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+}
+
+function calculateDayMinutes(day: WorkingHourDay): number {
+  let total = 0;
+
+  if (day.enterAM !== null && day.exitAM !== null) {
+    total += day.exitAM - day.enterAM;
+  }
+
+  if (day.enterPM !== null && day.exitPM !== null) {
+    total += day.exitPM - day.enterPM;
+  }
+
+  return total;
+}
+
+function validateDay(day: WorkingHourDay): string | null {
+  if (day.enterAM !== null && day.exitAM !== null && day.exitAM < day.enterAM) {
+    return "AM exit cannot be earlier than AM entry.";
+  }
+
+  if (day.exitAM !== null && day.enterPM !== null && day.enterPM < day.exitAM) {
+    return "PM entry cannot be earlier than AM exit.";
+  }
+
+  if (day.enterPM !== null && day.exitPM !== null && day.exitPM < day.enterPM) {
+    return "PM exit cannot be earlier than PM entry.";
+  }
+
+  return null;
 }
 
 function App() {
   const [workingHours, setWorkingHours] = useState<WorkingHourWeek>(() =>
     defaultWorkingHours(),
   );
-  console.log(workingHours);
 
-  function onTimeChange(newTime: string) {
-    console.log(newTime);
-    const date = new Date(newTime)
-    console.log("date: ", date);
+  const [errors, setErrors] = useState<
+    Partial<Record<WorkingDay, string | null>>
+  >({});
+
+  function onTimeChange(
+    dayName: WorkingDay,
+    field: TimeField,
+    newTime: string,
+  ) {
+    const newValue = newTime === "" ? null : timeToMinutes(newTime);
+
+    const updatedDay: WorkingHourDay = {
+      ...workingHours[dayName],
+      [field]: newValue,
+    };
+
+    const error = validateDay(updatedDay);
+
+    if (error !== null) {
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        [dayName]: error,
+      }));
+
+      return;
+    }
+
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      [dayName]: null,
+    }));
+
+    setWorkingHours((currentWorkingHours) => ({
+      ...currentWorkingHours,
+      [dayName]: updatedDay,
+    }));
   }
+
+  function calculateWeekMinutes(): number {
+    return Object.values(workingHours).reduce(
+      (total, day) => total + calculateDayMinutes(day),
+      0,
+    );
+  }
+
+  function renderTimeInput(dayName: WorkingDay, field: TimeField) {
+    return (
+      <input
+        type="time"
+        value={minutesToTime(workingHours[dayName][field])}
+        onChange={(event) => onTimeChange(dayName, field, event.target.value)}
+      />
+    );
+  }
+
+  function renderDay(dayName: WorkingDay) {
+    const day = workingHours[dayName];
+
+    const workedMinutes = calculateDayMinutes(day);
+    const difference = workedMinutes - WORKING_MINUTES_PER_DAY;
+
+    const hasCompleteDay =
+      day.enterAM !== null &&
+      day.exitAM !== null &&
+      day.enterPM !== null &&
+      day.exitPM !== null;
+
+    return (
+      <div className="day-column" key={dayName}>
+        <h2>{dayLabels[dayName]}</h2>
+
+        <table>
+          <tbody>
+            <tr>
+              <td>Enter AM</td>
+              <td>{renderTimeInput(dayName, "enterAM")}</td>
+            </tr>
+
+            <tr>
+              <td>Exit AM</td>
+              <td>{renderTimeInput(dayName, "exitAM")}</td>
+            </tr>
+
+            <tr>
+              <td>Enter PM</td>
+              <td>{renderTimeInput(dayName, "enterPM")}</td>
+            </tr>
+
+            <tr>
+              <td>Exit PM</td>
+              <td>{renderTimeInput(dayName, "exitPM")}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {errors[dayName] && <div className="error">{errors[dayName]}</div>}
+
+        <div className="day-total">
+          <div>
+            Worked: <strong>{formatDuration(workedMinutes)}</strong>
+          </div>
+
+          {hasCompleteDay && (
+            <div
+              className={
+                difference >= 0
+                  ? "balance balance-positive"
+                  : "balance balance-negative"
+              }
+            >
+              {difference >= 0 ? "+" : "-"}
+              {Math.abs(difference)} min
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const weekMinutes = calculateWeekMinutes();
 
   return (
     <>
       <section id="center">
-        <div style={{ display: "flex" }}>
-          <div
-            style={{ display: "flex", flexDirection: "column", padding: 25 }}
-          >
-            <h2>Monday</h2>
-            <table>
-              <tbody>
-                <tr>
-                  <td>Enter AM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Exit AM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Enter PM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Exit PM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", padding: 25 }}
-          >
-            <h2>Tuesday</h2>
-            <table>
-              <tbody>
-                <tr>
-                  <td>Enter AM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Exit AM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Enter PM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>Exit PM</td>
-                  <td>
-                    <input
-                      type="time"
-                      onChange={(event) => onTimeChange(event.target.value)}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          {/* .... */}
+        <div className="working-days">
+          {(Object.keys(dayLabels) as WorkingDay[]).map(renderDay)}
+        </div>
+
+        <div className="week-total">
+          <h2>Week total</h2>
+          <strong>{formatDuration(weekMinutes)}</strong>
         </div>
       </section>
     </>
