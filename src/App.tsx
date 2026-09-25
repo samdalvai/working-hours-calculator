@@ -21,6 +21,7 @@ interface WorkingHourWeek {
 type WorkingDay = keyof WorkingHourWeek;
 
 const WORKING_MINUTES_PER_DAY = 8 * 60;
+const WORKING_MINUTES_PER_WEEK = 40 * 60;
 
 const dayLabels: Record<WorkingDay, string> = {
   monday: "Monday",
@@ -105,6 +106,15 @@ function validateDay(day: WorkingHourDay): string | null {
   return null;
 }
 
+function isDayComplete(day: WorkingHourDay): boolean {
+  return (
+    day.enterAM !== null &&
+    day.exitAM !== null &&
+    day.enterPM !== null &&
+    day.exitPM !== null
+  );
+}
+
 function App() {
   const [workingHours, setWorkingHours] = useState<WorkingHourWeek>(() =>
     defaultWorkingHours(),
@@ -171,11 +181,7 @@ function App() {
     const workedMinutes = calculateDayMinutes(day);
     const difference = workedMinutes - WORKING_MINUTES_PER_DAY;
 
-    const hasCompleteDay =
-      day.enterAM !== null &&
-      day.exitAM !== null &&
-      day.enterPM !== null &&
-      day.exitPM !== null;
+    const hasCompleteDay = isDayComplete(day);
 
     return (
       <div className="day-column" key={dayName}>
@@ -231,6 +237,33 @@ function App() {
 
   const weekMinutes = calculateWeekMinutes();
 
+  const mondayToThursdayComplete =
+    isDayComplete(workingHours.monday) &&
+    isDayComplete(workingHours.tuesday) &&
+    isDayComplete(workingHours.wednesday) &&
+    isDayComplete(workingHours.thursday);
+
+  const fridayMorningComplete =
+    workingHours.friday.enterAM !== null && workingHours.friday.exitAM !== null;
+
+  const canCalculateFridayExit =
+    mondayToThursdayComplete &&
+    fridayMorningComplete &&
+    workingHours.friday.exitPM === null;
+
+  let suggestedFridayExit: number | null = null;
+  let noMoreWorkRequired = false;
+
+  if (canCalculateFridayExit) {
+    if (weekMinutes >= WORKING_MINUTES_PER_WEEK) {
+      noMoreWorkRequired = true;
+    } else if (workingHours.friday.enterPM !== null) {
+      const missingMinutes = WORKING_MINUTES_PER_WEEK - weekMinutes;
+
+      suggestedFridayExit = workingHours.friday.enterPM + missingMinutes;
+    }
+  }
+
   return (
     <>
       <section id="center">
@@ -238,9 +271,41 @@ function App() {
           {(Object.keys(dayLabels) as WorkingDay[]).map(renderDay)}
         </div>
 
-        <div className="week-total">
-          <h2>Week total</h2>
-          <strong>{formatDuration(weekMinutes)}</strong>
+        <div className="week-summary">
+          <div className="week-total">
+            <h2>Week total</h2>
+            <strong>{formatDuration(weekMinutes)}</strong>
+          </div>
+
+          {canCalculateFridayExit && noMoreWorkRequired && (
+            <div className="exit-suggestion exit-suggestion-done">
+              <h2>Friday</h2>
+              <strong>You don't have to work anymore.</strong>
+              <div>
+                You have already reached {formatDuration(weekMinutes)} this
+                week.
+              </div>
+            </div>
+          )}
+
+          {canCalculateFridayExit &&
+            !noMoreWorkRequired &&
+            suggestedFridayExit !== null && (
+              <div className="exit-suggestion">
+                <h2>Friday exit time</h2>
+
+                <div>To reach exactly 40 hours, you can leave at:</div>
+
+                <strong className="suggested-time">
+                  {minutesToTime(suggestedFridayExit)}
+                </strong>
+
+                <div>
+                  Remaining:{" "}
+                  {formatDuration(WORKING_MINUTES_PER_WEEK - weekMinutes)}
+                </div>
+              </div>
+            )}
         </div>
       </section>
     </>
