@@ -1,11 +1,11 @@
 #center {
-  padding: 30px;
+  padding: clamp(1rem, 4vw, 1.875rem);
 }
 
 .working-days {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr));
+  gap: clamp(0.875rem, 2.5vw, 1.25rem);
 }
 
 .day-column {
@@ -14,7 +14,8 @@
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 8px;
-  min-width: 220px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .day-column h2 {
@@ -108,20 +109,24 @@
 }
 
 .week-summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr));
   align-items: stretch;
-  gap: 20px;
+  gap: clamp(0.875rem, 2.5vw, 1.25rem);
   margin-top: 30px;
 }
 
 .week-total {
   margin-top: 0;
+  width: auto;
+  box-sizing: border-box;
 }
 
 .exit-suggestion {
   padding: 20px;
   border: 2px solid #777;
   border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .exit-suggestion h2 {
@@ -138,4 +143,16 @@
   display: block;
   margin: 10px 0;
   font-size: 1.8rem;
+}
+
+@media (max-width: 34rem) {
+  .day-column,
+  .week-total,
+  .exit-suggestion {
+    padding: 1rem;
+  }
+
+  .week-summary {
+    margin-top: 1rem;
+  }
 }
