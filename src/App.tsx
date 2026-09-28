@@ -220,15 +220,14 @@ function App() {
 
             <tr>
               <td>Exit PM</td>
-              <td>
-                {renderTimeInput(dayName, "exitPM")}
-                {dayName === "friday" && (
-                  <div className="input-note">Calculated in the weekly summary</div>
-                )}
-              </td>
+              <td>{renderTimeInput(dayName, "exitPM")}</td>
             </tr>
           </tbody>
         </table>
+
+        {dayName === "friday" && (
+          <div className="input-note">PM exit is calculated in the weekly summary.</div>
+        )}
 
         {error && <div className="error" role="alert">{error}</div>}
 
