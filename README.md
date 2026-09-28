@@ -1,4 +1,31 @@
-# React + TypeScript + Vite
+# Working Hours Calculator
+
+A small browser app for calculating a Monday-to-Friday working week. It is
+available at [samdalvai.github.io/working-hours-calculator](https://samdalvai.github.io/working-hours-calculator/).
+
+## Features
+
+- Record morning and afternoon entry and exit times for each workday.
+- See each day's worked time and balance against an 8-hour day, plus the total
+  against a 40-hour week.
+- Validate the usual schedule: AM entry by 09:00, AM exit from 12:00, PM entry
+  by 14:00, and PM exit from 16:30 (Monday to Thursday).
+- Count a minimum 30-minute lunch break, even if a shorter break is entered.
+- Calculate the suggested Friday exit time needed to reach 40 hours.
+- Use a responsive layout that works on desktop and mobile screens.
+
+## Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Other useful commands:
+
+- `npm run build` — create a production build.
+- `npm run preview` — preview the production build locally.
+- `npm run lint` — check the code style.
 
 ## GitHub Pages deployment
 
@@ -7,77 +34,3 @@ repository workflow. In the repository settings, set **Pages** → **Build and
 deployment** → **Source** to **GitHub Actions** once. The deployed URL is:
 
 `https://samdalvai.github.io/working-hours-calculator/`
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
