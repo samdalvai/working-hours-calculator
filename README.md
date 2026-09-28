@@ -1,5 +1,13 @@
 # React + TypeScript + Vite
 
+## GitHub Pages deployment
+
+Pushing to `main` builds and deploys the app to GitHub Pages through the
+repository workflow. In the repository settings, set **Pages** → **Build and
+deployment** → **Source** to **GitHub Actions** once. The deployed URL is:
+
+`https://samdalvai.github.io/working-hours-calculator/`
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
