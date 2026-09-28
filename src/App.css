@@ -32,6 +32,34 @@
 .day-column input[type="time"] {
   width: 100%;
   box-sizing: border-box;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #9aa4b2;
+  border-radius: 6px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.day-column input[type="time"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 18%);
+}
+
+.day-column input[type="time"]:disabled {
+  cursor: not-allowed;
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.input-note {
+  margin-top: 0.35rem;
+  color: #6b7280;
+  font-size: 0.75rem;
 }
 
 .day-total {

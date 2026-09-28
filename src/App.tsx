@@ -22,6 +22,11 @@ type WorkingDay = keyof WorkingHourWeek;
 
 const WORKING_MINUTES_PER_DAY = 8 * 60;
 const WORKING_MINUTES_PER_WEEK = 40 * 60;
+const LATEST_AM_ENTRY = 9 * 60;
+const EARLIEST_AM_EXIT = 12 * 60;
+const LATEST_PM_ENTRY = 14 * 60;
+const EARLIEST_PM_EXIT = 16 * 60 + 30;
+const MINIMUM_LUNCH_BREAK = 30;
 
 const dayLabels: Record<WorkingDay, string> = {
   monday: "Monday",
@@ -87,10 +92,36 @@ function calculateDayMinutes(day: WorkingHourDay): number {
     total += day.exitPM - day.enterPM;
   }
 
+  // A lunch break shorter than 30 minutes does not count as working time.
+  if (day.exitAM !== null && day.enterPM !== null) {
+    const breakMinutes = day.enterPM - day.exitAM;
+    total -= Math.max(0, MINIMUM_LUNCH_BREAK - breakMinutes);
+  }
+
   return total;
 }
 
-function validateDay(day: WorkingHourDay): string | null {
+function validateDay(day: WorkingHourDay, dayName: WorkingDay): string | null {
+  if (day.enterAM !== null && day.enterAM > LATEST_AM_ENTRY) {
+    return "AM entry cannot be later than 09:00.";
+  }
+
+  if (day.exitAM !== null && day.exitAM < EARLIEST_AM_EXIT) {
+    return "AM exit cannot be earlier than 12:00.";
+  }
+
+  if (day.enterPM !== null && day.enterPM > LATEST_PM_ENTRY) {
+    return "PM entry cannot be later than 14:00.";
+  }
+
+  if (
+    dayName !== "friday" &&
+    day.exitPM !== null &&
+    day.exitPM < EARLIEST_PM_EXIT
+  ) {
+    return "PM exit cannot be earlier than 16:30.";
+  }
+
   if (day.enterAM !== null && day.exitAM !== null && day.exitAM < day.enterAM) {
     return "AM exit cannot be earlier than AM entry.";
   }
@@ -120,10 +151,6 @@ function App() {
     defaultWorkingHours(),
   );
 
-  const [errors, setErrors] = useState<
-    Partial<Record<WorkingDay, string | null>>
-  >({});
-
   function onTimeChange(
     dayName: WorkingDay,
     field: TimeField,
@@ -131,30 +158,12 @@ function App() {
   ) {
     const newValue = newTime === "" ? null : timeToMinutes(newTime);
 
-    const updatedDay: WorkingHourDay = {
-      ...workingHours[dayName],
-      [field]: newValue,
-    };
-
-    const error = validateDay(updatedDay);
-
-    if (error !== null) {
-      setErrors((currentErrors) => ({
-        ...currentErrors,
-        [dayName]: error,
-      }));
-
-      return;
-    }
-
-    setErrors((currentErrors) => ({
-      ...currentErrors,
-      [dayName]: null,
-    }));
-
     setWorkingHours((currentWorkingHours) => ({
       ...currentWorkingHours,
-      [dayName]: updatedDay,
+      [dayName]: {
+        ...currentWorkingHours[dayName],
+        [field]: newValue,
+      },
     }));
   }
 
@@ -166,11 +175,15 @@ function App() {
   }
 
   function renderTimeInput(dayName: WorkingDay, field: TimeField) {
+    const isFridayExit = dayName === "friday" && field === "exitPM";
+
     return (
       <input
         type="time"
         value={minutesToTime(workingHours[dayName][field])}
         onChange={(event) => onTimeChange(dayName, field, event.target.value)}
+        disabled={isFridayExit}
+        aria-label={`${dayLabels[dayName]} ${field}`}
       />
     );
   }
@@ -182,6 +195,7 @@ function App() {
     const difference = workedMinutes - WORKING_MINUTES_PER_DAY;
 
     const hasCompleteDay = isDayComplete(day);
+    const error = validateDay(day, dayName);
 
     return (
       <div className="day-column" key={dayName}>
@@ -206,12 +220,17 @@ function App() {
 
             <tr>
               <td>Exit PM</td>
-              <td>{renderTimeInput(dayName, "exitPM")}</td>
+              <td>
+                {renderTimeInput(dayName, "exitPM")}
+                {dayName === "friday" && (
+                  <div className="input-note">Calculated in the weekly summary</div>
+                )}
+              </td>
             </tr>
           </tbody>
         </table>
 
-        {errors[dayName] && <div className="error">{errors[dayName]}</div>}
+        {error && <div className="error" role="alert">{error}</div>}
 
         <div className="day-total">
           <div>
